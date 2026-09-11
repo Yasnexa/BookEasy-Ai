@@ -58,6 +58,7 @@ export const navConfig: Record<UserRole, NavSection[]> = {
         { label: 'Services', href: '/dashboard/services', icon: Scissors },
         { label: 'Staff', href: '/dashboard/staff', icon: Users },
         { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+        { label: 'AI Assistant', href: '/dashboard/owner-assistant', icon: Sparkles },
       ],
     },
     {
