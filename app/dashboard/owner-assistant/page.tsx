@@ -66,9 +66,9 @@ export default function OwnerAssistantPage() {
         mode: 'owner',
       },
     });
+    if (data?.error) throw new Error(data.error);
     if (error) throw new Error(error.message || 'The assistant is temporarily unavailable.');
     if (!data || typeof data !== 'object') throw new Error('The assistant returned an invalid response.');
-    if (data.error) throw new Error(data.error);
     return data;
   }, []);
 

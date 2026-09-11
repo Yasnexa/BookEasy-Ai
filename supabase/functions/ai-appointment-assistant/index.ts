@@ -529,7 +529,7 @@ async function handleOwnerRequest(
       .lt("start_time", `${targetDate}T23:59:59${pakistanOffset}`)
       .neq("status", "cancelled")
       .order("start_time", { ascending: true });
-    if (error) return response({ error: "Appointments load nahi ho sakin." }, 500);
+    if (error) return response({ error: "Appointments load nahi ho sakin." });
     if (!appts || appts.length === 0) return response({ message: `${formatPakistanDate(targetDate)} ko koi appointments nahi hain.` });
     const message = `${formatPakistanDate(targetDate)} ki appointments:\n\n${appts.map((a: Record<string, unknown>) => {
       const service = a.services as { name?: string } | null;
@@ -551,7 +551,7 @@ async function handleOwnerRequest(
       .gte("start_time", new Date().toISOString())
       .order("start_time", { ascending: true })
       .limit(20);
-    if (error) return response({ error: "Staff appointments load nahi hui." }, 500);
+    if (error) return response({ error: "Staff appointments load nahi hui." });
     if (!appts || appts.length === 0) return response({ message: `**${staffMember.full_name}** ki koi upcoming appointments nahi hain.` });
     const message = `**${staffMember.full_name}** ki appointments:\n\n${appts.map((a: Record<string, unknown>) => {
       const service = a.services as { name?: string } | null;
@@ -576,7 +576,7 @@ async function handleOwnerRequest(
       .neq("status", "cancelled")
       .order("start_time", { ascending: true })
       .limit(20);
-    if (error) return response({ error: "Customer appointments load nahi hui." }, 500);
+    if (error) return response({ error: "Customer appointments load nahi hui." });
     if (!appts || appts.length === 0) return response({ message: "Is customer ki koi appointments nahi mili." });
     const nameMap = new Map(profiles.map((p: Record<string, unknown>) => [p.id as string, p.full_name as string]));
     const message = `Customer appointments:\n\n${appts.map((a: Record<string, unknown>) => {
@@ -608,7 +608,7 @@ async function handleOwnerRequest(
       .eq("business_id", businessId)
       .gte("start_time", startDate)
       .neq("status", "cancelled");
-    if (error) return response({ error: "Revenue calculate nahi ho saka." }, 500);
+    if (error) return response({ error: "Revenue calculate nahi ho saka." });
     const total = (appts || []).reduce((sum: number, a: Record<string, unknown>) => sum + Number(a.price), 0);
     const count = appts?.length || 0;
     const label = parsed.period === "this_month" ? "this month" : parsed.period === "this_week" ? "this week" : parsed.period === "tomorrow" ? "tomorrow" : "today";
@@ -622,7 +622,7 @@ async function handleOwnerRequest(
       .eq("business_id", businessId)
       .neq("status", "cancelled")
       .gte("start_time", new Date(new Date().getFullYear(), new Date().getMonth() - 3, 1).toISOString());
-    if (error) return response({ error: "Service stats load nahi hui." }, 500);
+    if (error) return response({ error: "Service stats load nahi hui." });
     const counts = new Map<string, { name: string; count: number }>();
     for (const a of (appts || []) as Record<string, unknown>[]) {
       const service = a.services as { name?: string } | null;
@@ -647,7 +647,7 @@ async function handleOwnerRequest(
       .select("staff_id,day_of_week,start_time,end_time,is_working")
       .in("staff_id", staffIds)
       .order("day_of_week", { ascending: true });
-    if (error) return response({ error: "Staff schedule load nahi hua." }, 500);
+    if (error) return response({ error: "Staff schedule load nahi hua." });
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const message = `Staff schedule:\n\n${targetStaff.map((s) => {
       const staffHours = (hours || []).filter((h: Record<string, unknown>) => h.staff_id === s.id);
@@ -710,12 +710,18 @@ Deno.serve(async (req: Request) => {
 
     // Route by role or explicit mode
     if (role === "business_owner" && body.mode !== "customer") {
-      return await handleOwnerRequest(supabase, { id: user.id }, messages);
+      try {
+        return await handleOwnerRequest(supabase, { id: user.id }, messages);
+      } catch (error) {
+        console.error("[ai-appointment-assistant] owner handler:", error);
+        const message = error instanceof Error ? error.message : "The assistant could not complete that request.";
+        return response({ error: message });
+      }
     }
     return await handleCustomerRequest(supabase, { id: user.id }, messages, { confirm_booking: body.confirm_booking });
   } catch (error) {
     console.error("[ai-appointment-assistant]", error);
     const message = error instanceof Error ? error.message : "The assistant could not complete that request.";
-    return response({ error: message }, 500);
+    return response({ error: message });
   }
 });
