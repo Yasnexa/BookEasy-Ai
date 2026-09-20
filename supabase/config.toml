@@ -1,2 +1,5 @@
 [functions.ai-appointment-assistant]
 verify_jwt = true
+
+[functions.contact-form]
+verify_jwt = false

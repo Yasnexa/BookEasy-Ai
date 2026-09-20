@@ -13,7 +13,7 @@ const navLinks = [
   { href: '/#how-it-works', label: 'How it works' },
   { href: '/#ai-assistant', label: 'AI Assistant' },
   { href: '/#pricing', label: 'Pricing' },
-  { href: '/#faq', label: 'FAQ' },
+  { href: '/contact', label: 'Contact' },
 ];
 
 export function PublicHeader() {

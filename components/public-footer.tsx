@@ -9,15 +9,12 @@ const footerLinks = {
     { label: 'Sign in', href: '/login' },
   ],
   Company: [
-    { label: 'About', href: '/#' },
-    { label: 'Careers', href: '/#' },
-    { label: 'Blog', href: '/#' },
-    { label: 'Contact', href: '/#' },
+    { label: 'Contact', href: '/contact' },
   ],
   Legal: [
-    { label: 'Privacy', href: '/#' },
-    { label: 'Terms', href: '/#' },
-    { label: 'Security', href: '/#' },
+    { label: 'Privacy Policy', href: '/privacy-policy' },
+    { label: 'Terms & Conditions', href: '/terms' },
+    { label: 'Refund & Cancellation', href: '/refund-policy' },
   ],
 };
 
@@ -29,7 +26,7 @@ export function PublicFooter() {
           <div className="md:col-span-1">
             <Logo />
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              AI-Powered Appointment Management, Made Easy. The modern booking platform for salons, barbers, and beauty businesses.
+              Smart appointment booking for modern businesses.
             </p>
           </div>
           {Object.entries(footerLinks).map(([title, links]) => (
@@ -52,7 +49,7 @@ export function PublicFooter() {
         </div>
         <div className="mt-10 border-t border-border/60 pt-6">
           <p className="text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} BookEasy AI. All rights reserved.
+            &copy; {new Date().getFullYear()} BookEasy AI. All rights reserved.
           </p>
         </div>
       </div>
