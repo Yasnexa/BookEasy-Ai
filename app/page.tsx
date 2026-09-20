@@ -18,6 +18,7 @@ import {
 import { useState } from 'react';
 import { PublicHeader } from '@/components/public-header';
 import { PublicFooter } from '@/components/public-footer';
+import { PricingSection } from '@/components/public/pricing-section';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -98,35 +99,7 @@ const ownerBenefits = [
   'Let AI handle booking requests for you',
 ];
 
-const pricingPlans = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: '/mo',
-    description: 'For solo professionals just getting started.',
-    features: ['1 staff member', 'Up to 3 services', 'Online booking page', 'Basic dashboard', 'Email reminders'],
-    cta: 'Start free',
-    highlighted: false,
-  },
-  {
-    name: 'Starter',
-    price: '$29',
-    period: '/mo',
-    description: 'For small businesses growing their bookings.',
-    features: ['Up to 5 staff', 'Unlimited services', 'SMS + email reminders', 'Analytics dashboard', 'Customer management', 'AI Assistant (beta)'],
-    cta: 'Start 14-day trial',
-    highlighted: true,
-  },
-  {
-    name: 'Pro',
-    price: '$79',
-    period: '/mo',
-    description: 'For busy salons with multiple locations.',
-    features: ['Unlimited staff', 'Multi-location support', 'Advanced analytics', 'Custom branding', 'Priority support', 'AI Assistant (full)'],
-    cta: 'Start 14-day trial',
-    highlighted: false,
-  },
-];
+
 
 const faqs = [
   {
@@ -406,47 +379,7 @@ export default function LandingPage() {
       {/* Pricing */}
       <section id="pricing" className="py-20 lg:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple, transparent pricing</h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Start free. Upgrade when you grow. No hidden fees, cancel anytime.
-            </p>
-          </div>
-          <div className="mt-16 grid gap-6 lg:grid-cols-3">
-            {pricingPlans.map((plan) => (
-              <Card
-                key={plan.name}
-                className={plan.highlighted ? 'border-primary shadow-lg ring-1 ring-primary/20' : 'border-border/60'}
-              >
-                <CardContent className="p-6">
-                  {plan.highlighted && (
-                    <Badge className="mb-4 w-fit">Most popular</Badge>
-                  )}
-                  <h3 className="text-xl font-bold">{plan.name}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold">{plan.price}</span>
-                    <span className="text-muted-foreground">{plan.period}</span>
-                  </div>
-                  <ul className="mt-6 space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2.5 text-sm">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                        <span className="text-muted-foreground">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className="mt-8 w-full"
-                    variant={plan.highlighted ? 'default' : 'outline'}
-                    asChild
-                  >
-                    <Link href="/signup">{plan.cta}</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <PricingSection />
         </div>
       </section>
 

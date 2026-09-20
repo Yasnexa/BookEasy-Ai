@@ -141,14 +141,55 @@ export interface Notification {
   created_at: string;
 }
 
+export type BillingCurrency = 'pkr' | 'usd';
+export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded' | 'canceled';
+
+export interface Plan {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string | null;
+  price_pkr: number;
+  price_usd: number;
+  billing_interval: string;
+  plan_key: SubscriptionPlan;
+  is_active: boolean;
+  sort_order: number;
+  features: string[];
+  limits: Record<string, number>;
+}
+
 export interface Subscription {
   id: string;
   business_id: string;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
   current_period_start: string;
-  current_period_end: string;
+  current_period_end: string | null;
   amount: number;
+  plan_id: string | null;
+  billing_currency: BillingCurrency | null;
+  payment_provider: string | null;
+  external_customer_id: string | null;
+  external_subscription_id: string | null;
+  canceled_at: string | null;
+  start_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Payment {
+  id: string;
+  business_id: string;
+  subscription_id: string | null;
+  plan_id: string | null;
+  amount: number;
+  currency: BillingCurrency;
+  payment_provider: string | null;
+  external_payment_id: string | null;
+  external_transaction_id: string | null;
+  status: PaymentStatus;
+  paid_at: string | null;
   created_at: string;
 }
 

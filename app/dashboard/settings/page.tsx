@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/lib/auth-context';
+import { BillingSection } from '@/components/dashboard/billing-section';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -124,6 +125,9 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Billing section */}
+      <BillingSection />
     </PageContainer>
   );
 }
