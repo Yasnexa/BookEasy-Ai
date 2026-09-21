@@ -17,6 +17,14 @@ const PADDLE_CLIENT_TOKEN = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || '';
 const PADDLE_STARTER_PRICE_ID = process.env.NEXT_PUBLIC_PADDLE_STARTER_PRICE_ID || '';
 const PADDLE_PRO_PRICE_ID = process.env.NEXT_PUBLIC_PADDLE_PRO_PRICE_ID || '';
 
+if (typeof window !== 'undefined') {
+  console.log('[paddle] env check:', {
+    hasClientToken: Boolean(PADDLE_CLIENT_TOKEN),
+    hasStarterPriceId: Boolean(PADDLE_STARTER_PRICE_ID),
+    hasProPriceId: Boolean(PADDLE_PRO_PRICE_ID),
+  });
+}
+
 const PRICE_IDS: Record<string, string> = {
   starter: PADDLE_STARTER_PRICE_ID,
   pro: PADDLE_PRO_PRICE_ID,
@@ -50,15 +58,25 @@ export function PricingSection() {
   }, []);
 
   useEffect(() => {
-    if (!PADDLE_CLIENT_TOKEN) return;
+    if (!PADDLE_CLIENT_TOKEN) {
+      console.warn('[paddle] NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is not set. Paddle checkout will not be available. Add it to the .env file (not just Bolt Secrets).');
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
+        console.log('[paddle] initializing in sandbox mode...');
         const paddleInstance = await initializePaddle({
           environment: 'sandbox',
           token: PADDLE_CLIENT_TOKEN,
         });
-        if (!cancelled && paddleInstance) setPaddle(paddleInstance);
+        if (cancelled) return;
+        if (paddleInstance) {
+          setPaddle(paddleInstance);
+          console.log('[paddle] initialized successfully');
+        } else {
+          console.error('[paddle] initializePaddle returned undefined');
+        }
       } catch (err) {
         console.error('[paddle] initialization failed:', err);
       }
@@ -70,22 +88,23 @@ export function PricingSection() {
     (planName: string) => {
       const priceId = PRICE_IDS[planName];
       if (!paddle) {
-        console.error('[paddle] not initialized');
+        console.error('[paddle] cannot open checkout: Paddle SDK not initialized. Check that NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is set in .env');
         return;
       }
       if (!priceId) {
-        console.error(`[paddle] no price ID configured for plan: ${planName}`);
+        console.error(`[paddle] cannot open checkout: no price ID configured for plan "${planName}". Check NEXT_PUBLIC_PADDLE_${planName.toUpperCase()}_PRICE_ID in .env`);
         return;
       }
 
       setCheckoutLoading(planName);
       try {
+        console.log(`[paddle] opening checkout for ${planName} with priceId: ${priceId}`, user?.email ? `email: ${user.email}` : 'no email prefill');
         paddle.Checkout.open({
           items: [{ priceId, quantity: 1 }],
           ...(user?.email ? { customer: { email: user.email } } : {}),
         });
       } catch (err) {
-        console.error('[paddle] checkout error:', err);
+        console.error('[paddle] checkout open error:', err);
       } finally {
         setCheckoutLoading(null);
       }
