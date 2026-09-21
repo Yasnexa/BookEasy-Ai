@@ -1,20 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Check } from 'lucide-react';
+import { initializePaddle, Paddle } from '@paddle/paddle-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase-client';
+import { useAuth } from '@/lib/auth-context';
 import type { Plan, BillingCurrency } from '@/lib/types';
 
 const CURRENCY_STORAGE_KEY = 'bookeasy_billing_currency';
 
+const PADDLE_CLIENT_TOKEN = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || '';
+const PADDLE_STARTER_PRICE_ID = process.env.NEXT_PUBLIC_PADDLE_STARTER_PRICE_ID || '';
+const PADDLE_PRO_PRICE_ID = process.env.NEXT_PUBLIC_PADDLE_PRO_PRICE_ID || '';
+
+const PRICE_IDS: Record<string, string> = {
+  starter: PADDLE_STARTER_PRICE_ID,
+  pro: PADDLE_PRO_PRICE_ID,
+};
+
 export function PricingSection() {
+  const { user } = useAuth();
   const [currency, setCurrency] = useState<BillingCurrency>('pkr');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paddle, setPaddle] = useState<Paddle | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem(CURRENCY_STORAGE_KEY) : null;
@@ -35,6 +49,61 @@ export function PricingSection() {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!PADDLE_CLIENT_TOKEN) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const paddleInstance = await initializePaddle({
+          environment: 'sandbox',
+          token: PADDLE_CLIENT_TOKEN,
+        });
+        if (!cancelled && paddleInstance) setPaddle(paddleInstance);
+      } catch (err) {
+        console.error('[paddle] initialization failed:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const openCheckout = useCallback(
+    (planName: string) => {
+      const priceId = PRICE_IDS[planName];
+      if (!paddle) {
+        console.error('[paddle] not initialized');
+        return;
+      }
+      if (!priceId) {
+        console.error(`[paddle] no price ID configured for plan: ${planName}`);
+        return;
+      }
+
+      setCheckoutLoading(planName);
+      try {
+        paddle.Checkout.open({
+          items: [{ priceId, quantity: 1 }],
+          ...(user?.email ? { customer: { email: user.email } } : {}),
+        });
+      } catch (err) {
+        console.error('[paddle] checkout error:', err);
+      } finally {
+        setCheckoutLoading(null);
+      }
+    },
+    [paddle, user],
+  );
+
+  const handlePlanClick = useCallback(
+    (planName: string) => {
+      if (planName === 'free') return;
+      if (!PADDLE_CLIENT_TOKEN || !PRICE_IDS[planName]) {
+        return;
+      }
+      openCheckout(planName);
+    },
+    [openCheckout],
+  );
+
   const toggleCurrency = () => {
     const next = currency === 'pkr' ? 'usd' : 'pkr';
     setCurrency(next);
@@ -49,6 +118,7 @@ export function PricingSection() {
   };
 
   const highlightedPlan = 'starter';
+  const paddleConfigured = Boolean(PADDLE_CLIENT_TOKEN && PADDLE_STARTER_PRICE_ID && PADDLE_PRO_PRICE_ID);
 
   return (
     <div>
@@ -89,39 +159,64 @@ export function PricingSection() {
                 </CardContent>
               </Card>
             ))
-          : plans.map((plan) => (
-              <Card
-                key={plan.id}
-                className={plan.name === highlightedPlan ? 'border-primary shadow-lg ring-1 ring-primary/20' : 'border-border/60'}
-              >
-                <CardContent className="p-6">
-                  {plan.name === highlightedPlan && (
-                    <Badge className="mb-4 w-fit">Most popular</Badge>
-                  )}
-                  <h3 className="text-xl font-bold">{plan.display_name}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-4xl font-bold">{formatPrice(plan)}</span>
-                    <span className="text-muted-foreground">/{plan.billing_interval === 'monthly' ? 'mo' : 'yr'}</span>
-                  </div>
-                  <ul className="mt-6 space-y-3">
-                    {(plan.features as string[]).map((feature) => (
-                      <li key={feature} className="flex items-start gap-2.5 text-sm">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                        <span className="text-muted-foreground">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className="mt-8 w-full"
-                    variant={plan.name === highlightedPlan ? 'default' : 'outline'}
-                    asChild
-                  >
-                    <Link href="/signup">{plan.name === 'free' ? 'Start free' : 'Choose plan'}</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+          : plans.map((plan) => {
+              const isFree = plan.name === 'free';
+              const isPaid = plan.name in PRICE_IDS;
+              const showPaddleButton = isPaid && paddleConfigured;
+
+              return (
+                <Card
+                  key={plan.id}
+                  className={plan.name === highlightedPlan ? 'border-primary shadow-lg ring-1 ring-primary/20' : 'border-border/60'}
+                >
+                  <CardContent className="p-6">
+                    {plan.name === highlightedPlan && (
+                      <Badge className="mb-4 w-fit">Most popular</Badge>
+                    )}
+                    <h3 className="text-xl font-bold">{plan.display_name}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
+                    <div className="mt-4 flex items-baseline gap-1">
+                      <span className="text-4xl font-bold">{formatPrice(plan)}</span>
+                      <span className="text-muted-foreground">/{plan.billing_interval === 'monthly' ? 'mo' : 'yr'}</span>
+                    </div>
+                    <ul className="mt-6 space-y-3">
+                      {(plan.features as string[]).map((feature) => (
+                        <li key={feature} className="flex items-start gap-2.5 text-sm">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                          <span className="text-muted-foreground">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {isFree ? (
+                      <Button
+                        className="mt-8 w-full"
+                        variant="outline"
+                        asChild
+                      >
+                        <Link href="/signup">Start free</Link>
+                      </Button>
+                    ) : showPaddleButton ? (
+                      <Button
+                        className="mt-8 w-full"
+                        variant={plan.name === highlightedPlan ? 'default' : 'outline'}
+                        disabled={checkoutLoading === plan.name}
+                        onClick={() => handlePlanClick(plan.name)}
+                      >
+                        {checkoutLoading === plan.name ? 'Opening checkout...' : 'Choose plan'}
+                      </Button>
+                    ) : (
+                      <Button
+                        className="mt-8 w-full"
+                        variant={plan.name === highlightedPlan ? 'default' : 'outline'}
+                        asChild
+                      >
+                        <Link href="/signup">Choose plan</Link>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
       </div>
     </div>
   );
